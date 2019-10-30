@@ -84,23 +84,23 @@ class TodoListProjector : Projector<TodoListEvent>() {
             }
         }
 
-        fun project(event: CompletedItemsRemoved) {
-            transaction {
-                val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
-                query.filterNot {
-                    it[version] >= event.version
-
-                }.forEach { row ->
-                    TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
-                        it[version] = event.version
-                        it[updatedAt] = DateTime.now()
-                    })
-                    TodoItemRepo.deleteWhere {
-                        TodoRepo.id.eq(event.todolistID).and(TodoItemRepo.completed.eq(true))
-                    }
-                }
-            }
-        }
+//        fun project(event: CompletedItemsRemoved) {
+//            transaction {
+//                val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
+//                query.filterNot {
+//                    it[version] >= event.version
+//
+//                }.forEach { row ->
+//                    TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
+//                        it[version] = event.version
+//                        it[updatedAt] = DateTime.now()
+//                    })
+//                    TodoItemRepo.deleteWhere {
+//                        TodoRepo.id.eq(event.todolistID).and(TodoItemRepo.completed.eq(true))
+//                    }
+//                }
+//            }
+//        }
 
         fun project(event: ItemDescriptionSet) {
             transaction {
@@ -138,22 +138,22 @@ class TodoListProjector : Projector<TodoListEvent>() {
             }
         }
 
-        fun project(event: AllItemsChecked) {
-            transaction {
-                val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
-                query.filterNot {
-                    it[version] >= event.version
-                }.forEach { row ->
-                    TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
-                        it[version] = event.version
-                        it[updatedAt] = DateTime.now()
-                    })
-                    TodoItemRepo.update({ TodoRepo.id.eq(event.aggregateID) }, 1, {
-                        it[completed] = true
-                    })
-                    commit()
-                }
-            }
-        }
+//        fun project(event: AllItemsChecked) {
+//            transaction {
+//                val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
+//                query.filterNot {
+//                    it[version] >= event.version
+//                }.forEach { row ->
+//                    TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
+//                        it[version] = event.version
+//                        it[updatedAt] = DateTime.now()
+//                    })
+//                    TodoItemRepo.update({ TodoRepo.id.eq(event.aggregateID) }, 1, {
+//                        it[completed] = true
+//                    })
+//                    commit()
+//                }
+//            }
+//        }
     }
 }
