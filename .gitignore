@@ -106,3 +106,17 @@ modules.xml
 hs_err_pid*
 
 # End of https://www.gitignore.io/api/kotlin,jetbrains+iml
+#
+.DS_Store
+
+### Idea ###
+.idea/
+
+.classpath
+.project
+.settings/
+*.iml
+
+.gradle/
+bin/
+build/
