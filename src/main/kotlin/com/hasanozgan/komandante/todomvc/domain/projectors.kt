@@ -38,15 +38,12 @@ class TodoListProjector : Projector<TodoListEvent>() {
         }
     }
 
-    fun project(event: Deleted) {
-    }
-
     fun project(event: ItemAdded) {
         transaction {
             val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
             query.filterNot {
                 it[version] >= event.version
-            }.forEach { row ->
+            }.forEach {
                 TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
                     it[version] = event.version
                     it[updatedAt] = DateTime.now()
@@ -67,7 +64,7 @@ class TodoListProjector : Projector<TodoListEvent>() {
             val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
             query.filterNot {
                 it[version] >= event.version
-            }.forEach { row ->
+            }.forEach {
                 TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
                     it[version] = event.version
                     it[updatedAt] = DateTime.now()
@@ -85,7 +82,7 @@ class TodoListProjector : Projector<TodoListEvent>() {
             val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
             query.filterNot {
                 it[version] >= event.version
-            }.forEach { row ->
+            }.forEach {
                 TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
                     it[version] = event.version
                     it[updatedAt] = DateTime.now()
@@ -103,7 +100,7 @@ class TodoListProjector : Projector<TodoListEvent>() {
             val query = TodoRepo.select { aggregateID.eq(event.aggregateID) }
             query.filterNot {
                 it[version] >= event.version
-            }.forEach { row ->
+            }.forEach {
                 TodoRepo.update({ aggregateID.eq(event.aggregateID) }, 1, {
                     it[version] = event.version
                     it[updatedAt] = DateTime.now()

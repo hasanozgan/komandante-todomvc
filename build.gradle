@@ -78,5 +78,5 @@ dependencies {
 application {
 
     // Define the main class for the application
-    mainClassName = 'com.hasanozgan.komandante.todoapp.AppKt'
+    mainClassName = 'com.hasanozgan.komandante.todomvc.AppKt'
 }
