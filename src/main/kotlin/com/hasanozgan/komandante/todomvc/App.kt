@@ -47,34 +47,48 @@ import java.io.File
 import java.time.Duration
 import java.util.*
 
-//class EventBus {
-//
-//    private val channel = BroadcastChannel<Any>(1)
-//
-//    fun send(event: Any, context: CoroutineContext = Dispatchers.Main) {
-//
-//        GlobalScope.launch(context) {
-//            channel.send(event)
-//        }
-//    }
-//
-//    fun subscribe(): ReceiveChannel<Any> =
-//            channel.openSubscription()
-//
-//    inline fun <reified T> subscribeToEvent() =
-//            subscribe().filter { it is T }.map { it as T }
-//}
-
-//TODO: Items
-// 1) Replace TODOMVC app with react sample
-// 2) Replaced websocket with sse
-// 3) Replace RxJava.Publisher with BroadcastChannel ?
-
-data class AddItem(val id: TodoListID, val desc: String)
+data class AddItemRequest(val id: TodoListID, val desc: String)
+data class RemoveItemRequest(val id: TodoListID, val item_id: TodoItemID)
+data class SetItemDescriptionRequest(val id: TodoListID, val item_id: TodoItemID, val desc: String)
+data class CheckItemRequest(val id: TodoListID, val item_id: TodoItemID, val checked: Boolean)
+data class CheckAllItemsRequest(val id: TodoListID, val checked: Boolean)
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
 fun Application.main() {
+
+    // CQRS / ES Setup
+    val todoListID = newAggregateID()
+    val messageBus = newMessageBusWithLocalAdapter()
+    val commandBus = newCommandBus(messageBus)
+    val eventBus = newEventBus(messageBus)
+    val eventStore = newEventStoreWithExposedAdapter()
+    val aggregateHandler = AggregateHandler(eventStore, eventBus)
+    Database.connect(url = "jdbc:h2:mem:todolist;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
+
+    transaction {
+        SchemaUtils.create(Events, TodoRepo, TodoItemRepo)
+        commit()
+    }
+
+    // CQRS Setup
+    commandBus.registerAggregate(aggregateHandler, TodoListAggregateFactory())
+    commandBus.subscribe<TodoListCommand> {
+        println("COMMAND RECEIVEDs: ${it}")
+    }
+
+    val todoListProjector = TodoListProjector()
+    val projectorEventHandler = ProjectorEventHandler(todoListProjector, commandBus)
+    eventBus.addHandler(projectorEventHandler)
+
+    val eventReceiver = mutableListOf<String>()
+    eventBus.subscribe<TodoListEvent> {
+        println("EVENT RECEIVED: ${it}")
+        eventReceiver.add(it.toString())
+    }
+
+    commandBus.publish(CreateCommand(todoListID))
+
     install(DefaultHeaders)
     install(CallLogging)
     install(WebSockets) {
@@ -90,37 +104,6 @@ fun Application.main() {
     }
 
     routing {
-        // CQRS / ES Setup
-        val todoListID = newAggregateID()
-        val messageBus = newMessageBusWithLocalAdapter()
-        val commandBus = newCommandBus(messageBus)
-        val eventBus = newEventBus(messageBus)
-        val eventStore = newEventStoreWithExposedAdapter()
-        val aggregateHandler = AggregateHandler(eventStore, eventBus)
-        Database.connect(url = "jdbc:h2:mem:todolist;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
-
-        transaction {
-            SchemaUtils.create(Events, TodoRepo, TodoItemRepo)
-            commit()
-        }
-
-        // CQRS Setup
-        commandBus.registerAggregate(aggregateHandler, TodoListAggregateFactory())
-        commandBus.subscribe<TodoListCommand> {
-            println("COMMAND RECEIVEDs: ${it}")
-        }
-
-        val todoListProjector = TodoListProjector()
-        val projectorEventHandler = ProjectorEventHandler(todoListProjector, commandBus)
-        eventBus.addHandler(projectorEventHandler)
-
-        val eventReceiver = mutableListOf<String>()
-        eventBus.subscribe<TodoListEvent> {
-            println("EVENT RECEIVED: ${it}")
-            eventReceiver.add(it.toString())
-        }
-
-        commandBus.publish(CreateCommand(todoListID))
 
         webSocket("/api/events") {
             try {
@@ -151,26 +134,36 @@ fun Application.main() {
             call.respondText("{}")
         }
         post("/api/todos/delete") {
+            commandBus.publish(DeleteCommand(todoListID))
             call.respondText("{}")
         }
         post("/api/todos/add_item") {
-            val addItemREq = call.receive<AddItem>()
-            commandBus.publish(AddItemCommand(addItemREq.id, addItemREq.desc))
+            val req = call.receive<AddItemRequest>()
+            commandBus.publish(AddItemCommand(req.id, req.desc))
             call.respondText("{}")
         }
         post("/api/todos/remove_item") {
+            val req = call.receive<RemoveItemRequest>()
+            commandBus.publish(RemoveItemCommand(req.id, req.item_id))
             call.respondText("{}")
         }
         post("/api/todos/remove_completed") {
+            commandBus.publish(RemoveCompletedItemsCommand(todoListID))
             call.respondText("{}")
         }
         post("/api/todos/set_item_desc") {
+            val req = call.receive<SetItemDescriptionRequest>()
+            commandBus.publish(SetItemDescriptionCommand(req.id, req.item_id, req.desc))
             call.respondText("{}")
         }
         post("/api/todos/check_item") {
+            val req = call.receive<CheckItemRequest>()
+            commandBus.publish(CheckItemCommand(req.id, req.item_id, req.checked))
             call.respondText("{}")
         }
         post("/api/todos/check_all_items") {
+            val req = call.receive<CheckAllItemsRequest>()
+            commandBus.publish(CheckAllItemsCommand(req.id, req.checked))
             call.respondText("{}")
         }
 

@@ -3,6 +3,7 @@ package com.hasanozgan.komandante.todomvc.domain
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
+import arrow.core.toOption
 import arrow.data.Invalid
 import arrow.data.Valid
 import arrow.data.Validated
@@ -35,8 +36,10 @@ class TodoListAggregate(override var id: TodoListID) : Aggregate() {
     fun handle(command: RemoveItemCommand): Validated<DomainError, Event> {
         if (!created) return Invalid(DomainError("todoList is not created"))
 
-        items.find { it.itemID == command.todoItemID }
-                ?: return Invalid(DomainError("item does not exists: ${command.todoItemID}"))
+        var record = items.find { it.itemID == command.todoItemID }
+        if (record == null) {
+            return Invalid(DomainError("item does not exists: ${command.todoItemID}"))
+        }
 
         return Valid(ItemRemoved(command.aggregateID, command.todoItemID))
     }
@@ -76,7 +79,13 @@ class TodoListAggregate(override var id: TodoListID) : Aggregate() {
     fun handle(command: CheckAllItemsCommand): Validated<DomainError, List<Event>> {
         if (!created) return Invalid(DomainError("todoList is not created"))
 
-        return Valid(items.filter { it.completed != command.checked }.map { ItemChecked(command.aggregateID, it.itemID, command.checked) }.toList())
+        val eventList = items.filter {
+            it.completed != command.checked
+        }.map {
+            ItemChecked(command.aggregateID, it.itemID, command.checked)
+        }.toList()
+
+        return Valid(eventList)
     }
 
     fun apply(event: Created) {
@@ -99,10 +108,6 @@ class TodoListAggregate(override var id: TodoListID) : Aggregate() {
         return Some(DomainError("todo item is not exists: ${event.todoItemID}"))
     }
 
-//    fun apply(event: CompletedItemsRemoved) {
-//        items.removeIf { it.completed }
-//    }
-
     fun apply(event: ItemDescriptionSet): Option<DomainError> {
         val item = items.find { it.itemID == event.todoItemID }
                 ?: return Some(DomainError("item is not exists: ${event.todoItemID} "))
@@ -122,10 +127,6 @@ class TodoListAggregate(override var id: TodoListID) : Aggregate() {
         items.set(index, item)
         return None
     }
-
-//    fun apply(event: AllItemsChecked) {
-//        items.replaceAll { it.completed = event.checked; it }
-//    }
 }
 
 class TodoListAggregateFactory : AggregateFactory<TodoListCommand, TodoListEvent> {

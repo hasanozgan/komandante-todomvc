@@ -15,7 +15,7 @@ plugins {
 repositories {
     jcenter()
 
-    maven { url 'https://oss.sonatype.org/service/local/repositories/comhasanozgan-1026/content' }
+    maven { url 'https://oss.sonatype.org/service/local/repositories/comhasanozgan-1028/content' }
     maven { url "https://dl.bintray.com/kotlin/ktor" }
 }
 
@@ -24,13 +24,11 @@ dependencies {
     def kotlinVersion = '1.3.41'
     def ktorVersion = '1.2.5'
     def logbackVersion = "1.2.3"
-    def komandanteVersion = "0.0.2.61"
+    def komandanteVersion = "0.0.2.63"
     def arrowVersion = "0.9.0"
     def exposedVersion = "0.16.1"
-
     def rxjavaVersion = "2.2.0"
     def rxKotlinVersion = "2.2.0"
-
 
     // Align versions of all Kotlin components
     implementation platform('org.jetbrains.kotlin:kotlin-bom')
